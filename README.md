@@ -18,4 +18,19 @@ cp pfdicdat.h <your project>/components/pforth/csrc/
 
 The -m32 is **IMPORTANT** - dictionary must be 32 bit (for esp32 sizing), not 64 bit (host sizing).
 
+## Adding custom words that call out to C 
 
+
+1. plumb new words into pfcustom.c 
+2. copy it up to the host build, and rebuild the static dictionary (just bindings for your new words, no linkage)
+3. copy dicdat.h back to the esp32 build
+4. at runtime, LoadCustomFunctionTable() patches the words with their (esp32) implementations.
+
+```
+cp components/pforth/pfcustom.c ../pforth/csrc
+cd ../pforth/platforms/unix
+make clean && make WIDTHOPT=-m32 pfdicdat
+cp pfdicdat.h ../../../discordant/components/pforth/csrc
+cd ../../../discordant
+idf.py -p /dev/ttyACM1 build flash monitor
+```

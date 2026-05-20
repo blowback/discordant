@@ -28,27 +28,46 @@
 **
 ***************************************************************/
 
-
 #include "pf_all.h"
 
-static cell_t CTest0( cell_t Val );
-static void CTest1( cell_t Val1, cell_t Val2 );
+#ifdef ESP_PLATFORM
+/* defined by the IDF toolchain */
+
+#include "driver/gpio.h"
+#include "esp_timer.h"
+
+static cell_t CW_GpioSet(cell_t pin, cell_t level) {
+  gpio_set_level((gpio_num_t)pin, (uint32_t)level);
+  return 0;
+}
+static cell_t CW_Micros(void) { return (cell_t)esp_timer_get_time(); }
+#else
+/* host dictionary build — no IDF */
+static cell_t CW_GpioSet(cell_t pin, cell_t level) {
+  (void)pin;
+  (void)level;
+  return 0;
+}
+static cell_t CW_Micros(void) { return 0; }
+#endif
+
+static cell_t CTest0(cell_t Val);
+static void CTest1(cell_t Val1, cell_t Val2);
 
 /****************************************************************
 ** Step 1: Put your own special glue routines here
 **     or link them in from another file or library.
 ****************************************************************/
-static cell_t CTest0( cell_t Val )
-{
-    MSG_NUM_D("CTest0: Val = ", Val);
-    return Val+1;
+static cell_t CTest0(cell_t Val) {
+  MSG_NUM_D("CTest0: Val = ", Val);
+  return Val + 1;
 }
 
-static void CTest1( cell_t Val1, cell_t Val2 )
-{
+static void CTest1(cell_t Val1, cell_t Val2) {
 
-    MSG("CTest1: Val1 = "); ffDot(Val1);
-    MSG_NUM_D(", Val2 = ", Val2);
+  MSG("CTest1: Val1 = ");
+  ffDot(Val1);
+  MSG_NUM_D(", Val2 = ", Val2);
 }
 
 /****************************************************************
@@ -65,14 +84,13 @@ static void CTest1( cell_t Val1, cell_t Val2 )
 ** Do not change the name of LoadCustomFunctionTable()!
 ** It is called by the pForth kernel.
 */
-#define NUM_CUSTOM_FUNCTIONS  (2)
+#define NUM_CUSTOM_FUNCTIONS (2)
 CFunc0 CustomFunctionTable[NUM_CUSTOM_FUNCTIONS];
 
-Err LoadCustomFunctionTable( void )
-{
-    CustomFunctionTable[0] = CTest0;
-    CustomFunctionTable[1] = CTest1;
-    return 0;
+Err LoadCustomFunctionTable(void) {
+  CustomFunctionTable[0] = (CFunc0)CW_GpioSet;
+  CustomFunctionTable[1] = (CFunc0)CW_Micros;
+  return 0;
 }
 
 #else
@@ -80,11 +98,7 @@ Err LoadCustomFunctionTable( void )
 ** If your loader supports global initialization (most do.) then just
 ** create the table like this.
 */
-CFunc0 CustomFunctionTable[] =
-{
-    (CFunc0) CTest0,
-    (CFunc0) CTest1
-};
+CFunc0 CustomFunctionTable[] = {(CFunc0)CTest0, (CFunc0)CTest1};
 #endif
 
 /****************************************************************
@@ -94,23 +108,28 @@ CFunc0 CustomFunctionTable[] =
 ****************************************************************/
 
 #if (!defined(PF_NO_INIT)) && (!defined(PF_NO_SHELL))
-Err CompileCustomFunctions( void )
-{
-    Err err;
-    int i = 0;
-/* Compile Forth words that call your custom functions.
-** Make sure order of functions matches that in LoadCustomFunctionTable().
-** Parameters are: Name in UPPER CASE, Function, Index, Mode, NumParams
-*/
-    err = CreateGlueToC( "CTEST0", i++, C_RETURNS_VALUE, 1 );
-    if( err < 0 ) return err;
-    err = CreateGlueToC( "CTEST1", i++, C_RETURNS_VOID, 2 );
-    if( err < 0 ) return err;
+Err CompileCustomFunctions(void) {
+  Err err;
+  int i = 0;
+  /* Compile Forth words that call your custom functions.
+  ** Make sure order of functions matches that in LoadCustomFunctionTable().
+  ** Parameters are: Name in UPPER CASE, Function, Index, Mode, NumParams
+  */
+  /* err = CreateGlueToC( "CTEST0", i++, C_RETURNS_VALUE, 1 ); */
+  /* if( err < 0 ) return err; */
+  /* err = CreateGlueToC( "CTEST1", i++, C_RETURNS_VOID, 2 ); */
+  /* if( err < 0 ) return err; */
+  err = CreateGlueToC("GPIO-SET", i++, C_RETURNS_VOID, 2);
+  if (err < 0)
+    return err;
+  err = CreateGlueToC("MICROS", i++, C_RETURNS_VALUE, 0);
+  if (err < 0)
+    return err;
 
-    return 0;
+  return 0;
 }
 #else
-Err CompileCustomFunctions( void ) { return 0; }
+Err CompileCustomFunctions(void) { return 0; }
 #endif
 
 /****************************************************************
@@ -120,5 +139,4 @@ Err CompileCustomFunctions( void ) { return 0; }
 **         Test:   10 Ctest0 ( should print message then '11' )
 ****************************************************************/
 
-#endif  /* PF_USER_CUSTOM */
-
+#endif /* PF_USER_CUSTOM */

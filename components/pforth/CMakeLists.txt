@@ -6,7 +6,7 @@ idf_component_register(
          "pfcustom.c"
          "pf_io_esp32s3.c"
     INCLUDE_DIRS "csrc" "."
-    REQUIRES esp_driver_usb_serial_jtag esp_timer
+    REQUIRES esp_driver_usb_serial_jtag esp_timer esp_driver_gpio esp_timer
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE
@@ -14,5 +14,5 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
 )
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
-    PF_STATIC_DIC
+    PF_STATIC_DIC PF_NO_GLOBAL_INIT
 )
