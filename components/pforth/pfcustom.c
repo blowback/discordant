@@ -54,6 +54,7 @@ static cell_t CW_Micros(void) { return 0; }
 static cell_t CTest0(cell_t Val);
 static void CTest1(cell_t Val1, cell_t Val2);
 
+#if 0
 /****************************************************************
 ** Step 1: Put your own special glue routines here
 **     or link them in from another file or library.
@@ -69,6 +70,7 @@ static void CTest1(cell_t Val1, cell_t Val2) {
   ffDot(Val1);
   MSG_NUM_D(", Val2 = ", Val2);
 }
+#endif
 
 /****************************************************************
 ** Step 2: Create CustomFunctionTable.

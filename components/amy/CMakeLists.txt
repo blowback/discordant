@@ -7,7 +7,10 @@
 # )
 
 set(AMY_SRC     "${COMPONENT_DIR}/upstream")
-set(AMY_PATCHES "${COMPONENT_DIR}/patches/0001-i2s-task-signature.patch")
+set(AMY_PATCHES
+    "${COMPONENT_DIR}/patches/0001-i2s-task-signature.patch"
+    "${COMPONENT_DIR}/patches/0002-midi-task-signature.patch"
+)
 
 find_program(GIT_EXECUTABLE git REQUIRED)
 
@@ -49,6 +52,8 @@ list(REMOVE_ITEM AMY_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/upstream/src/amy-example.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/upstream/src/libminiaudio-audio.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/upstream/src/examples.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/upstream/src/usb.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/upstream/src/amy_midi.c"
 
 )
 
