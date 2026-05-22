@@ -1,0 +1,15 @@
+diff --git a/src/i2s.c b/src/i2s.c
+index ac5797f..58c33c1 100644
+--- a/src/i2s.c
++++ b/src/i2s.c
+@@ -299,7 +299,9 @@ void esp_read_i2s_input() {
+ }
+ 
+ // Make AMY's FABT run forever , as a FreeRTOS task 
+-void esp_fill_audio_buffer_task() {
++void esp_fill_audio_buffer_task(void *arg) {
++    (void)arg; // unused 
++    
+     while(1) {
+         AMY_PROFILE_START(AMY_ESP_FILL_BUFFER)
+         if(AMY_HAS_I2S && AMY_HAS_AUDIO_IN) {

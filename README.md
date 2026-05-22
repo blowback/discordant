@@ -34,3 +34,12 @@ cp pfdicdat.h ../../../discordant/components/pforth/csrc
 cd ../../../discordant
 idf.py -p /dev/ttyACM1 build flash monitor
 ```
+
+## Applying patches to AMY vendor branch 
+
+Amy doesn't like ESP-IDF v6, some patching is required. Here's the general MO:
+
+- `cd components/amy` edit files from here e.g. `src/i2s.c`
+- `git diff src/i2s.c > ../patches/0001-i2s-task-signature.patch`
+- `git checkout .` - reset to orig
+- patches are applied by `components/amy/CMakeLists.txt` 
