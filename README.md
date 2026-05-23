@@ -18,6 +18,9 @@ cp pfdicdat.h <your project>/components/pforth/csrc/
 
 The -m32 is **IMPORTANT** - dictionary must be 32 bit (for esp32 sizing), not 64 bit (host sizing).
 
+Incidentally, if your custom Forth words call custom *C* words, you'll also 
+need the `pfcustom.c` (with suitable host-side stubs) outlined below.
+
 ## Adding custom words that call out to C 
 
 
