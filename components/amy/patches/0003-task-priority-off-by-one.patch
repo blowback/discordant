@@ -1,0 +1,15 @@
+diff --git a/src/amy.h b/src/amy.h
+index 071a280..864e6ba 100644
+--- a/src/amy.h
++++ b/src/amy.h
+@@ -1049,8 +1049,8 @@ extern SAMPLE scan_max(SAMPLE* block, int len);
+ #define AMY_RENDER_TASK_PRIORITY (20) 
+ #define AMY_FILL_BUFFER_TASK_PRIORITY (20)
+ #else
+-#define AMY_RENDER_TASK_PRIORITY (ESP_TASK_PRIO_MAX)
+-#define AMY_FILL_BUFFER_TASK_PRIORITY (ESP_TASK_PRIO_MAX)
++#define AMY_RENDER_TASK_PRIORITY (ESP_TASK_PRIO_MAX - 1)
++#define AMY_FILL_BUFFER_TASK_PRIORITY (ESP_TASK_PRIO_MAX - 1)
+ #endif
+ #define AMY_RENDER_TASK_COREID (0)
+ #define AMY_FILL_BUFFER_TASK_COREID (1)
