@@ -18,6 +18,7 @@ DECIMAL
 : instrument ( synth patch voices -- )  amy-instrument ;
 : reverb     ( lvl live damp -- )       amy-reverb ;
 : tone       ( osc wave freq vel -- )   amy-tone ;
+: amy"       ( "ccc<quote>" -- )        [char] " parse amy-parse ; 
 
 \ --- wave constants ---
 0 constant sine    1 constant pulse   2 constant saw-down

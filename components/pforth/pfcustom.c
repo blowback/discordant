@@ -113,6 +113,20 @@ void CW_AmyOscOff(cell_t osc) {
     amy_add_event(&e);
 }
 
+// ( c-addr u -- )   pforth pushes addr then count
+void CW_AmyParse(cell_t c_addr, cell_t u) {
+    char *buf = (char *)malloc(u + 1);
+
+    if(buf) {
+        memset(buf, 0, u + 1);
+        memcpy(buf, (const char *)c_addr, u);
+        amy_add_message(buf);
+        free(buf);
+    } else {
+        ESP_LOGE("forth", "Can't alloc buf for msg");
+    }
+}
+
 #else
 
 /* host dictionary build — no IDF */
@@ -167,6 +181,11 @@ void CW_AmyOscOff(cell_t osc) {
     (void)osc;
 }
 
+void CW_AmyParse(cell_t c_addr, cell_t u) {
+    (void)c_addr;
+    (void)u;
+}
+
 #endif
 
 
@@ -179,7 +198,7 @@ void CW_AmyOscOff(cell_t osc) {
 ** Do not change the name of LoadCustomFunctionTable()!
 ** It is called by the pForth kernel.
 */
-#define NUM_CUSTOM_FUNCTIONS (9)
+#define NUM_CUSTOM_FUNCTIONS (10)
 CFunc0 CustomFunctionTable[NUM_CUSTOM_FUNCTIONS];
 
 Err LoadCustomFunctionTable(void) {
@@ -191,7 +210,8 @@ Err LoadCustomFunctionTable(void) {
     CustomFunctionTable[5] = (CFunc0)CW_AmyReverb;
     CustomFunctionTable[6] = (CFunc0)CW_AmyTone;
     CustomFunctionTable[7] = (CFunc0)CW_AmyOscNote;
-    CustomFunctionTable[7] = (CFunc0)CW_AmyOscOff;
+    CustomFunctionTable[8] = (CFunc0)CW_AmyOscOff;
+    CustomFunctionTable[9] = (CFunc0)CW_AmyParse;
     return 0;
 }
 
@@ -217,6 +237,7 @@ Err CompileCustomFunctions(void) {
     err = CreateGlueToC("AMY-TONE",       i++, C_RETURNS_VOID,  4); if (err < 0) return err;
     err = CreateGlueToC("AMY-OSC-NOTE",   i++, C_RETURNS_VOID,  4); if (err < 0) return err;
     err = CreateGlueToC("AMY-OSC-OFF",    i++, C_RETURNS_VOID,  1); if (err < 0) return err;
+    err = CreateGlueToC("AMY-PARSE",      i++, C_RETURNS_VOID,  2); if (err < 0) return err;
 
     return 0;
 }
