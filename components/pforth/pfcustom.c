@@ -94,7 +94,27 @@ void CW_AmyTone(cell_t osc, cell_t wave, cell_t freq, cell_t vel) {
     amy_add_event(&e);
 }
 
+// ( osc wave midinote vel127 -- )
+void CW_AmyOscNote(cell_t osc, cell_t wave, cell_t note, cell_t vel) {
+    if (wave < SINE || wave > NOISE) return;
+    amy_event e = amy_default_event();
+    e.osc           = osc;
+    e.wave          = wave;
+    e.freq_coefs[0] = freq_for_midi_note((float)note);
+    e.velocity      = vel / 127.0f;
+    amy_add_event(&e);
+}
+
+// ( osc -- )
+void CW_AmyOscOff(cell_t osc) {
+    amy_event e = amy_default_event();
+    e.osc      = osc;
+    e.velocity = 0.0f;
+    amy_add_event(&e);
+}
+
 #else
+
 /* host dictionary build — no IDF */
 static cell_t CW_GpioSet(cell_t pin, cell_t level) {
     (void)pin;
@@ -136,6 +156,17 @@ void CW_AmyTone(cell_t osc, cell_t wave, cell_t freq, cell_t vel) {
     (void)vel;
 }
 
+void CW_AmyOscNote(cell_t osc, cell_t wave, cell_t note, cell_t vel) {
+    (void)osc;
+    (void)wave;
+    (void)note;
+    (void)vel;
+}
+
+void CW_AmyOscOff(cell_t osc) {
+    (void)osc;
+}
+
 #endif
 
 
@@ -148,7 +179,7 @@ void CW_AmyTone(cell_t osc, cell_t wave, cell_t freq, cell_t vel) {
 ** Do not change the name of LoadCustomFunctionTable()!
 ** It is called by the pForth kernel.
 */
-#define NUM_CUSTOM_FUNCTIONS (7)
+#define NUM_CUSTOM_FUNCTIONS (9)
 CFunc0 CustomFunctionTable[NUM_CUSTOM_FUNCTIONS];
 
 Err LoadCustomFunctionTable(void) {
@@ -159,6 +190,8 @@ Err LoadCustomFunctionTable(void) {
     CustomFunctionTable[4] = (CFunc0)CW_AmyInstrument;
     CustomFunctionTable[5] = (CFunc0)CW_AmyReverb;
     CustomFunctionTable[6] = (CFunc0)CW_AmyTone;
+    CustomFunctionTable[7] = (CFunc0)CW_AmyOscNote;
+    CustomFunctionTable[7] = (CFunc0)CW_AmyOscOff;
     return 0;
 }
 
@@ -182,6 +215,8 @@ Err CompileCustomFunctions(void) {
     err = CreateGlueToC("AMY-INSTRUMENT", i++, C_RETURNS_VOID,  3); if (err < 0) return err;
     err = CreateGlueToC("AMY-REVERB",     i++, C_RETURNS_VOID,  3); if (err < 0) return err;
     err = CreateGlueToC("AMY-TONE",       i++, C_RETURNS_VOID,  4); if (err < 0) return err;
+    err = CreateGlueToC("AMY-OSC-NOTE",   i++, C_RETURNS_VOID,  4); if (err < 0) return err;
+    err = CreateGlueToC("AMY-OSC-OFF",    i++, C_RETURNS_VOID,  1); if (err < 0) return err;
 
     return 0;
 }
