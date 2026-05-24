@@ -6,6 +6,10 @@
 #include "pforth.h"
 #include "amy.h"
 #include "sdkconfig.h"
+
+
+#include "i2c.h"
+
 #define PF_UART UART_NUM_0
 
 static void forth_task(void *arg) {
@@ -57,7 +61,7 @@ void app_main(void) {
     amy_cfg.platform.multicore = 1;
 
     amy_cfg.features.startup_bleep = 1;
-    amy_cfg.features.default_synths = 1;
+    amy_cfg.features.default_synths = 0;
     amy_cfg.features.audio_in = 0;
 
     amy_cfg.midi = AMY_MIDI_IS_NONE;
@@ -69,12 +73,14 @@ void app_main(void) {
     amy_cfg.i2s_dout = 17;
 
     amy_start(amy_cfg);
+    i2c_setup();
 
-           ESP_LOGI("forth", "spawning forth task");
+    ESP_LOGI("forth", "spawning forth task");
     configure_console();
     BaseType_t r = xTaskCreate(forth_task, "forth", 24576, NULL, 5, NULL);
     ESP_LOGI("forth", "xTaskCreate returned %d", (int)r);
 
+    #if 0
     // note on
     amy_event on = amy_default_event();
     on.synth     = 1;
@@ -113,4 +119,5 @@ void app_main(void) {
     off3.midi_note = 67;
     off3.velocity  = 0;                 // velocity 0 = note off3
     amy_add_event(&off3);
+    #endif
 }

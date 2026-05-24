@@ -120,6 +120,7 @@ void CW_AmyParse(cell_t c_addr, cell_t u) {
     if(buf) {
         memset(buf, 0, u + 1);
         memcpy(buf, (const char *)c_addr, u);
+        printf("AMY parse [%d]: '%s'\n", (int)u, buf);   // DEBUG
         amy_add_message(buf);
         free(buf);
     } else {
