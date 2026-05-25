@@ -27,6 +27,10 @@ static const char *TAG = "i2c_task";
 typedef struct {
     QueueHandle_t event_queue;
     i2c_slave_dev_handle_t handle;
+    unsigned char *ptr;
+    size_t len;
+    uint8_t status;
+    uint8_t seqno;
 } i2c_slave_context_t;
 
 typedef enum {
@@ -138,50 +142,82 @@ static bool i2c_slave_receive_cb(i2c_slave_dev_handle_t i2c_slave, const i2c_sla
 static void i2c_slave_task(void *arg)
 {
     i2c_slave_context_t *context = (i2c_slave_context_t *)arg;
-    //i2c_slave_dev_handle_t handle = (i2c_slave_dev_handle_t)context->handle;
+    i2c_slave_dev_handle_t handle = (i2c_slave_dev_handle_t)context->handle;
+    uint32_t write_len, total_written;
 
-    //uint8_t zero_buffer[32] = {}; // Use this buffer to clear the fifo.
-    //uint32_t write_len, total_written;
-    //uint32_t buffer_size = 0;
-    bool exit = false;
     printf("SLAVE TASK RUNNING!\n");
 
-    while (!exit) {
+    while (true) {
         i2c_slave_event_t evt;
 
         if (xQueueReceive(context->event_queue, &evt, 10) == pdTRUE) {
-            //neopixel_lights_out_in_ms(100);
             ESP_LOGI(TAG, "Dequeued a packet");
             printf("SLAVE TASK DEQ'D A PKT\n");
 
             switch(evt.type) {
                 case I2C_SLAVE_EVT_TX:
-                    // MASTER requests data
-                    neopixel_rgb(0, 255, 0);
-                    neopixel_lights_out_in_ms(100);
+                    {
+                        // MASTER requests data
+                        printf("TX\n");
+                        neopixel_rgb(0, 255, 0);
 
-                    /* total_written = 0; */
-                    /**/
-                    /* while (total_written < buffer_size) { */
-                    /*     ESP_ERROR_CHECK(i2c_slave_write(handle, data_buffer + total_written, buffer_size - total_written, &write_len, 1000)); */
-                    /**/
-                    /*     if (write_len == 0) { */
-                    /*         ESP_LOGE(TAG, "Write error or timeout"); */
-                    /*         exit = true; */
-                    /*     } */
-                    /**/
-                    /*     total_written += write_len; */
-                    /* } */
+                        bool release = false; // free context buf?
+                        uint8_t status_buf[2];
+
+                        if(context->ptr && context->len) {
+                            printf("ACTUAL DATA\n");
+                            release = true;
+                        } else {
+                            printf("STATUS BYTES\n");
+                            status_buf[0] = context->status;
+                            status_buf[1] = context->seqno++;
+                            context->ptr = status_buf;
+                            context->len = 2;
+                        }
+
+                        total_written = 0;
+
+                        while (total_written < context->len) {
+                            neopixel_rgb(0, 255, 255);
+                            ESP_ERROR_CHECK(i2c_slave_write(handle,
+                                                            context->ptr + total_written,
+                                                            context->len - total_written,
+                                                            &write_len,
+                                                            1000));
+                            neopixel_rgb(0, 255, 0);
+
+                            if (write_len == 0) {
+                                ESP_LOGE(TAG, "Write error or timeout");
+                                break;
+                            }
+
+                            total_written += write_len;
+                        }
+
+                        if(release) {
+                            printf("AUTORELEASE BUF\n");
+                            free(context->ptr);
+                        }
+
+                        context->ptr = NULL;
+                        context->len = 0;
+                        neopixel_lights_out_in_ms(100);
+                    }
                     break;
 
                 case I2C_SLAVE_EVT_RX:
                     // MASTER sent data
+                        printf("RX\n");
                     neopixel_rgb(255, 0, 0);
                     neopixel_lights_out_in_ms(100);
                     handle_frame(evt.buf, evt.len);
                     free(evt.buf);
                     evt.buf = NULL;
                     evt.len = 0;
+                    break;
+
+                default:
+                    printf("UNREC MSG 0x%x\n", evt.type);
                     break;
             }
         }
@@ -196,6 +232,9 @@ void i2c_setup(void)
 
     ESP_LOGI(TAG, "Setting up i2c slave");
 
+    context.status = 0xa5;
+    context.seqno = 0x00;
+
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << I2C_SLAVE_POWER),
         .mode = GPIO_MODE_OUTPUT,
@@ -203,8 +242,8 @@ void i2c_setup(void)
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE
     };
-    gpio_config(&io_conf);
-    gpio_set_level(I2C_SLAVE_POWER, 1);
+    /* gpio_config(&io_conf); */
+    /* gpio_set_level(I2C_SLAVE_POWER, 1); */
 
     context.event_queue = xQueueCreate(16, sizeof(i2c_slave_event_t));
 
