@@ -8,6 +8,7 @@
 #include "driver/gpio.h"
 #include "driver/i2c_slave.h"
 #include "amy.h"
+#include "neopixel.h"
 
 static const char *TAG = "i2c_task";
 
@@ -17,12 +18,6 @@ static const char *TAG = "i2c_task";
 #define I2C_SLAVE_NUM    0
 #define ESP_SLAVE_ADDR   0x2a       /* ESP slave address (wr = 0x54 r = 0x55 )*/
 
-// Command Lists
-#define STARS_COMMAND          (0x10)
-#define FORKS_COMMAND          (0x20)
-#define OPENISSUES_COMMAND     (0x30)
-#define DESCRIPTIONS_COMMAND   (0x40)
-
 // ---- frame types on the I²C wire ----
 #define FRAME_MIDI3   0x00   // [0x00][status][d1][d2]
 #define FRAME_MIDI2   0x01   // [0x01][status][d1]
@@ -30,12 +25,7 @@ static const char *TAG = "i2c_task";
 #define FRAME_PING    0x03   // [0x03]
 
 typedef struct {
-    uint8_t tmp_buffer_stars[sizeof(int)];
-    uint8_t tmp_buffer_forks[sizeof(int)];
-    uint8_t tmp_buffer_open_issues[sizeof(int)];
-    uint8_t tmp_buffer_descriptions[100];
     QueueHandle_t event_queue;
-    uint8_t command_data;
     i2c_slave_dev_handle_t handle;
 } i2c_slave_context_t;
 
@@ -110,6 +100,7 @@ static bool i2c_slave_request_cb(i2c_slave_dev_handle_t i2c_slave, const i2c_sla
     i2c_slave_context_t *context = (i2c_slave_context_t *)arg;
     i2c_slave_event_t evt = { .type = I2C_SLAVE_EVT_TX };
     BaseType_t xTaskWoken = 0;
+
     xQueueSendFromISR(context->event_queue, &evt, &xTaskWoken);
     return xTaskWoken;
 }
@@ -119,6 +110,8 @@ static bool i2c_slave_receive_cb(i2c_slave_dev_handle_t i2c_slave, const i2c_sla
 {
     i2c_slave_context_t *context = (i2c_slave_context_t *)arg;
     BaseType_t xTaskWoken = 0;
+
+
     unsigned char *ptr = evt_data->buffer;
     size_t len = evt_data->length;
 
@@ -151,14 +144,21 @@ static void i2c_slave_task(void *arg)
     //uint32_t write_len, total_written;
     //uint32_t buffer_size = 0;
     bool exit = false;
+    printf("SLAVE TASK RUNNING!\n");
 
     while (!exit) {
         i2c_slave_event_t evt;
 
         if (xQueueReceive(context->event_queue, &evt, 10) == pdTRUE) {
+            //neopixel_lights_out_in_ms(100);
+            ESP_LOGI(TAG, "Dequeued a packet");
+            printf("SLAVE TASK DEQ'D A PKT\n");
+
             switch(evt.type) {
                 case I2C_SLAVE_EVT_TX:
                     // MASTER requests data
+                    neopixel_rgb(0, 255, 0);
+                    neopixel_lights_out_in_ms(100);
 
                     /* total_written = 0; */
                     /**/
@@ -176,6 +176,8 @@ static void i2c_slave_task(void *arg)
 
                 case I2C_SLAVE_EVT_RX:
                     // MASTER sent data
+                    neopixel_rgb(255, 0, 0);
+                    neopixel_lights_out_in_ms(100);
                     handle_frame(evt.buf, evt.len);
                     free(evt.buf);
                     evt.buf = NULL;
@@ -184,6 +186,7 @@ static void i2c_slave_task(void *arg)
             }
         }
     }
+    ESP_LOGE(TAG, "i2c slave exiting");
     vTaskDelete(NULL);
 }
 
@@ -230,4 +233,5 @@ void i2c_setup(void)
     ESP_ERROR_CHECK(i2c_slave_register_event_callbacks(context.handle, &cbs, &context));
 
     xTaskCreate(i2c_slave_task, "i2c_slave_task", 1024 * 4, &context, 10, NULL);
+    ESP_LOGI(TAG, "i2c slave setup complete");
 }

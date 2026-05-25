@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "pforth.h"
 #include "amy.h"
+#include "neopixel.h"
 #include "sdkconfig.h"
 
 
@@ -74,6 +75,9 @@ void app_main(void) {
 
     amy_start(amy_cfg);
     i2c_setup();
+    neopixel_init();
+    neopixel_rgb(0, 0, 255);
+    neopixel_lights_out_in_ms(1000);
 
     ESP_LOGI("forth", "spawning forth task");
     configure_console();
