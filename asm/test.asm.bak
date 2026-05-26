@@ -1,0 +1,61 @@
+; ============================================================
+; test.asm
+;
+; Send a framed AMY wiremessage to I2C device 0x2A 
+; Frame format on the wire (after START + addr/W):
+;     0x54  0x02  N  <N bytes of payload>
+; Followed by STOP.
+;
+; Returns Carry SET on success, CLEAR on any NACK.
+; Interrupts should be disabled before calling.
+; ============================================================
+
+`                   OUTPUT  test.com 
+                    ORG     0x0100
+
+                    .MODULE test_i2c
+
+I2C_TARGET          .EQU    0x2a                    ; DISCORDANT's I2C address
+
+test_i2c_send       LD      H, I2C_TARGET
+                    LD      L, 0x54                 ; first payload byte sent right after addr
+                    CALL    i2c_write_to            ; START + addr(W) + 0x54
+                    JP      NC, _send_done
+
+                    LD      A, 0x02
+                    CALL    i2c_write
+                    JP      NC, _send_done
+
+                    LD      HL, message
+                    LD      A, (HL)                 ; A = N
+                    INC     HL
+                    LD      E, A                    ; E = remaining-byte counter
+                                                    ;   (i2c_write uses A,B,C,D — E and HL are safe)
+                    CALL    i2c_write               ; send N
+                    JP      NC, _send_done
+
+_send_loop          LD      A, (HL)
+                    INC     HL
+                    CALL    i2c_write
+                    JP      NC, _send_done
+                    DEC     E
+                    JR      NZ, _send_loop
+
+                    CALL    i2c_stop
+                    SCF
+                    RET
+
+_send_done          CALL    i2c_stop
+                    AND     A                       ; CF = 0 on failure path
+                    RET
+
+message             .DB     11, "v0w2f440l1Z"       ; osc 0 , wave 2, 440 Hz, note on
+
+                    .MODULE main
+
+                    DI 
+                    CALL    test_i2c_send
+                    EI 
+                    RET 
+
+                    END
